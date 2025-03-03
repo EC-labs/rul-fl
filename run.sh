@@ -2,10 +2,10 @@
 
 # yaml configurations 
 frequency=20
-evaluation_directory="evaluation=2023-07-05"
+evaluation_directory="evaluation=2024-03-14"
 
 # environment variables
-faulty_client='[5,\ 10]'
+faulty_client='[5,\ 18]'
 
 check_server_status () {
     docker container inspect -f '{{.State.Status}}' "$1" 1>/dev/null 2>&1
@@ -106,7 +106,7 @@ test_models () {
 present_results () {
     for program in "$@"; do
         program="$(sed 's/\\//g' <<< "${program}")"
-        echo "${program}"
+        echo "PROGRAM=${program}"
         cat "results/${program}/test_metrics.json" |
             jq
     done
@@ -149,11 +149,11 @@ add_distributed_faulty () {
     "${frequency}"
 
 distributed_programs=(
-    "rul_engine"    
-    "random_best"    
-    "random_softmax"
     "full_best"
     "full_softmax"
+    "random_softmax"
+    "random_best"    
+    "rul_engine"    
 )
 engines=(2 5 10 16 18 20)
 
@@ -161,19 +161,19 @@ models_directory=(
     "frequency=${frequency}/program=rul_turbofan"
 )
 
-noise_array=( 0 1 2 3 4 5 6 7 8 9 10 ) # available noise
-for noise_amplitude in "${noise_array[@]}"; do
-    echo "${noise_amplitude}"
-    printf "\n\n"
-    add_centralized_isolated  engines  models_directory
-    add_distributed  distributed_programs  models_directory
-    add_distributed_faulty  distributed_programs  models_directory
+add_distributed  distributed_programs  models_directory
+run_distributed_scripts "${distributed_programs[@]}"
 
-    run_centralized 
-    run_centralized_isolated
-    run_distributed_scripts "${distributed_programs[@]}"
+add_centralized_isolated  engines  models_directory
+run_centralized_isolated
+
+run_centralized 
+
+noise_array=( 0.1 0.3 0.5 0.7 1.0 1.3 1.5 1.7 2.0 )
+for noise_amplitude in "${noise_array[@]}"; do
+    add_distributed_faulty  distributed_programs  models_directory
     run_faulty_distributed_scripts "${distributed_programs[@]}"
 done;
 
 test_models "${models_directory[@]}"
-present_results "${models_directory[@]}"
+present_results "${models_directory[@]}" 

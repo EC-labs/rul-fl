@@ -670,11 +670,11 @@ class SplitFedServer:
             t.start()
         for t in threads_training: 
             t.join()
-        outputs = torch.tensor([])
-        targets = torch.tensor([])
-        for t in self.threads: 
-            outputs = torch.cat((t.outputs_validate, outputs), 0)
-            targets = torch.cat((t.targets_validate, targets), 0)
+        outputs = []
+        targets = []
+        for t in self.threads:
+            outputs.append(t.outputs_validate)
+            targets.append(t.targets_validate)
         return outputs, targets
 
     def test(self, testloader): 

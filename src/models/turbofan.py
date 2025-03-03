@@ -11,6 +11,7 @@ import sys
 import yaml
 import json
 import functools
+import statistics
 
 from typing import List, Dict, Tuple, Optional
 from torch.utils.data import Dataset, random_split, DataLoader
@@ -375,7 +376,7 @@ class CreatorCNNEngine(FactoryModelDatasets):
         ENGINE = int(os.getenv("ENGINE", "2.0"))
         FAULTY = bool(int(os.getenv("FAULTY", "0")))
         FAULTY_CLIENT = json.loads(os.getenv("FAULTY_CLIENT", "[]"))
-        NOISE_AMPLITUDE = int(os.getenv("NOISE_AMPLITUDE", "0"))
+        NOISE_AMPLITUDE = float(os.getenv("NOISE_AMPLITUDE", "0"))
         faulty = FAULTY and (ENGINE in FAULTY_CLIENT)
         logger_console.info(f"Client engine: {ENGINE}")
 
@@ -560,21 +561,25 @@ class EngineSimulationDataset(TurbofanSimulationDataset):
     def __init__(self, engine, all_data, *args, faulty=False, relative_noise=0.5, **kwargs):
         self.engine = engine
         all_data = all_data.loc[all_data["unit"] == engine, :].copy()
-        super().__init__(all_data, *args, **kwargs)
         if faulty == True:
-            self.add_noise(relative_noise)
-            
-    def add_noise(self, relative_noise): 
+            all_data = self.add_noise(all_data, relative_noise)
+        super().__init__(all_data, *args, **kwargs)
+
+    def add_noise(self, df, relative_noise, ignore=set(["unit", "cycle"])): 
         logger_console.info(
             f"Adding noise to engine data. std: `{relative_noise}`"
         )
-        col_std = self.all_data.std()
+        col_std = df.std()
         assert isinstance(col_std, pd.Series)
         for idx, std_dev in col_std.items(): 
-            nrows = len(self.all_data.loc[:, idx])
-            self.all_data.loc[:, idx] += np.random.normal(
+            if idx in ignore: 
+                continue
+            nrows = len(df.loc[:, idx])
+            df.loc[:, idx] += np.random.normal(
                 0, std_dev*relative_noise, nrows
             )
+        return df
+
 
 def validate(neural, dataloader_validation): 
     import tqdm
@@ -675,11 +680,18 @@ def test_per_flight(neural, dataset_test, filepath):
     return rmse, mae
 
 def compute_rmse_mae(outputs, targets): 
-    err = outputs-targets
-    sum_se = sum_squared_error(err)
-    sum_ae = sum_absolute_error(err)
-    rmse = math.sqrt(sum_se/outputs.size()[0]) 
-    mae = sum_ae/outputs.size()[0]
+    rmses = []
+    maes = []
+    for thread_outputs, thread_targets in zip(outputs, targets):
+        err = thread_outputs - thread_targets
+        sum_se = sum_squared_error(err)
+        sum_ae = sum_absolute_error(err)
+        rmses.append(math.sqrt(sum_se/thread_outputs.size()[0]))
+        maes.append(sum_ae/thread_outputs.size()[0])
+
+    rmse_max, rmse_min = max(rmses), min(rmses)
+    rmses_filtered = [rmse for rmse in rmses if (rmse != rmse_max) and (rmse != rmse_min)]
+    rmse, mae = sum(rmses_filtered)/len(rmses_filtered), sum(maes)/len(maes)
     return rmse, mae
 
 

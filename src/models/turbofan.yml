@@ -1,24 +1,45 @@
-dataset: 
-  X_v_to_keep:  ["W21", "W50", "SmFan", "SmLPC", "SmHPC"]  
-  X_s_to_keep: ["Wf", "Nf", "T24", "T30", "T48", "T50", "P2", "P50"] 
+---
+dataset:
+  X_v_to_keep:
+    - W21
+    - W50
+    - SmFan
+    - SmLPC
+    - SmHPC
+  X_s_to_keep:
+    - Wf
+    - Nf
+    - T24
+    - T30
+    - T48
+    - T50
+    - P2
+    - P50
   stepsize_sample: 10
   considered_length: 50
   frequency: 20
   validation_size: 0.2
-
-models: 
-  - layers: 
-      - ["C", 1, 10]
-      - ["C", 10, 10]
-      - ["C", 10, 1]
-      - ["F"]
-      - ["L", 850, 100, True]
-      - ["L", 100, 1, False]
-      # C: convolutional layer: TUple = ("C", in_channels, out_channels)
-      # L: Fully connected linear layer. Tuple: ("L", in_features, out_features, do_activation)
-      # F: flatten layer (no computations)
-    kernel_size: 
-      height: 9 
+models:
+  - layers:
+      - - C
+        - 1
+        - 10
+      - - C
+        - 10
+        - 10
+      - - C
+        - 10
+        - 1
+      - - F
+      - - L
+        - 850
+        - 100
+        - true
+      - - L
+        - 100
+        - 1
+        - false
+    kernel_size:
+      height: 9
       width: 1
     split_layer: 4
-    

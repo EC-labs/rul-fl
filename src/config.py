@@ -12,7 +12,7 @@ if PROGRAM_NAME == None:
     raise Exception()
 FAULTY = bool(int(os.getenv("FAULTY", "0"))) if PROGRAM_NAME != "rul_turbofan" else False
 FAULTY_CLIENT = json.loads(os.getenv("FAULTY_CLIENT", "[]")) if FAULTY else []
-NOISE_AMPLITUDE = int(os.getenv("NOISE_AMPLITUDE", "0"))
+NOISE_AMPLITUDE = float(os.getenv("NOISE_AMPLITUDE", "0"))
 NCLIENTS = int(os.getenv("NCLIENTS", "1"))
 ENGINE = int(os.getenv("ENGINE", "0"))
 
